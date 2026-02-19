@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import type { Site, Maintainer } from '@/types'
-import { CalendarCheck, ExternalLink, Gift, Pencil, Trash2, User, Tag, StickyNote } from 'lucide-react'
+import { CalendarCheck, ExternalLink, Gift, Pencil, Trash2, User, Tag, StickyNote, Copy, Check } from 'lucide-react'
 
 interface SiteCardProps {
   site: Site
@@ -8,6 +9,16 @@ interface SiteCardProps {
 }
 
 export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation()
+    navigator.clipboard.writeText(site.url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
   const checkinHref = site.is_checkin
     ? site.checkin_url?.trim() ||
       `${site.url.replace(/\/$/, '')}/console/personal`
@@ -84,11 +95,18 @@ export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
             href={site.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-primary hover:underline max-w-full transition-colors truncate"
+            className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-primary hover:underline min-w-0 transition-colors truncate"
           >
             <ExternalLink className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">{site.url}</span>
           </a>
+          <button
+            onClick={handleCopy}
+            className="shrink-0 rounded-md p-1 text-slate-300 hover:text-primary hover:bg-primary-50 transition-colors"
+            title="复制网址"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
         {/* Custom Tags */}
