@@ -21,7 +21,10 @@
       "name": "frontend",
       "path": "frontend",
       "template": "DOCKERFILE",
-      "ports": [80]
+      "ports": [80],
+      "env": {
+        "BACKEND_URL": "http://backend.zeabur.internal:8080"
+      }
     }
   ]
 }
