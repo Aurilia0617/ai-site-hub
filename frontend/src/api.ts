@@ -3,14 +3,52 @@ import type { Site, SitesResponse, ImportResult } from './types'
 
 const API_BASE = '/api/v1'
 
+function getAuthToken(): string {
+  return sessionStorage.getItem('site-hub-token') || ''
+}
+
+export function setAuthToken(token: string) {
+  sessionStorage.setItem('site-hub-token', token)
+}
+
+export function clearAuthToken() {
+  sessionStorage.removeItem('site-hub-token')
+}
+
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init)
+  const token = getAuthToken()
+  const headers = new Headers(init?.headers)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  const res = await fetch(url, { ...init, headers })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body?.error?.message || body?.error || `Request failed: ${res.status}`)
+    const msg = body?.error?.message || body?.error || `Request failed: ${res.status}`
+    if (res.status === 401) {
+      clearAuthToken()
+      window.dispatchEvent(new CustomEvent('auth-required'))
+    }
+    throw new Error(msg)
   }
   if (res.status === 204) return undefined as T
   return res.json()
+}
+
+export async function checkAuth(): Promise<{ required: boolean }> {
+  const res = await fetch(`${API_BASE}/auth/check`)
+  return res.json()
+}
+
+export async function verifyPassword(password: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  if (!res.ok) return false
+  const data = await res.json()
+  return data.ok === true
 }
 
 export interface SiteFilters {

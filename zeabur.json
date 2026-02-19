@@ -14,7 +14,8 @@
       ],
       "env": {
         "PORT": "8080",
-        "CORS_ORIGIN": "*"
+        "CORS_ORIGIN": "*",
+        "ACCESS_PASSWORD": "${ACCESS_PASSWORD}"
       }
     },
     {

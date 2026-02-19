@@ -1,15 +1,57 @@
-import { useState, useMemo } from 'react'
-import { useSites, useCreateSite, useUpdateSite, useDeleteSite } from './api'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSites, useCreateSite, useUpdateSite, useDeleteSite, checkAuth } from './api'
 import { SiteCard } from './components/SiteCard'
 import { SiteFormDialog } from './components/SiteFormDialog'
 import { ImportExportBar } from './components/ImportExportBar'
+import { PasswordGate } from './components/PasswordGate'
 import { toast } from 'sonner'
 import { Plus, Search, Compass } from 'lucide-react'
 import type { Site } from './types'
 
 type FilterTag = 'checkin' | 'benefit'
+type AuthState = 'loading' | 'authenticated' | 'need-password'
 
 export default function App() {
+  const [authState, setAuthState] = useState<AuthState>('loading')
+
+  const handleAuthRequired = useCallback(() => {
+    setAuthState('need-password')
+  }, [])
+
+  useEffect(() => {
+    checkAuth().then(({ required }) => {
+      if (!required) {
+        setAuthState('authenticated')
+      } else {
+        const token = sessionStorage.getItem('site-hub-token')
+        setAuthState(token ? 'authenticated' : 'need-password')
+      }
+    }).catch(() => {
+      setAuthState('authenticated')
+    })
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('auth-required', handleAuthRequired)
+    return () => window.removeEventListener('auth-required', handleAuthRequired)
+  }, [handleAuthRequired])
+
+  if (authState === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-400">加载中...</div>
+      </div>
+    )
+  }
+
+  if (authState === 'need-password') {
+    return <PasswordGate onSuccess={() => setAuthState('authenticated')} />
+  }
+
+  return <MainContent />
+}
+
+function MainContent() {
   const [search, setSearch] = useState('')
   const [activeTags, setActiveTags] = useState<Set<FilterTag>>(new Set())
   const [dialogOpen, setDialogOpen] = useState(false)

@@ -5,12 +5,40 @@ const { createStore } = require("./store");
 const PORT = process.env.PORT || 8080;
 const DATA_FILE = process.env.DATA_FILE || "./data/sites.json";
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const ACCESS_PASSWORD = (process.env.ACCESS_PASSWORD || "").trim();
 
 const app = express();
 const store = createStore({ dataFile: DATA_FILE });
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json({ limit: "2mb" }));
+
+// Auth check - is password required?
+app.get("/api/v1/auth/check", (req, res) => {
+  res.json({ required: !!ACCESS_PASSWORD });
+});
+
+// Auth verify - validate password
+app.post("/api/v1/auth/verify", (req, res) => {
+  if (!ACCESS_PASSWORD) {
+    return res.json({ ok: true });
+  }
+  const { password } = req.body || {};
+  if (password === ACCESS_PASSWORD) {
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "密码错误" } });
+  }
+});
+
+// Auth middleware - protect all other /api routes
+app.use("/api", (req, res, next) => {
+  if (!ACCESS_PASSWORD) return next();
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (token === ACCESS_PASSWORD) return next();
+  res.status(401).json({ error: { code: "UNAUTHORIZED", message: "需要认证" } });
+});
 
 function parseBool(v) {
   if (v === "true") return true;
