@@ -14,10 +14,7 @@
 docker compose up --build -d
 ```
 
-- 前端: http://localhost:3000
-- 后端: http://localhost:8080
-
-本地模式下无需密码，直接访问即可。
+访问 http://localhost:3000，本地模式下无需密码。
 
 ## 部署到 Zeabur
 
@@ -25,34 +22,20 @@ docker compose up --build -d
 
 登录 [Zeabur](https://dash.zeabur.com)，创建新项目，选择区域。
 
-### 2. 分别添加两个服务
+### 2. 添加服务
 
-> **重要**: 需要分别添加 backend 和 frontend 两个服务，不能作为整体部署。
+点击 `Add Service` → `Git` → 选择本仓库。Zeabur 会自动识别根目录的 Dockerfile，构建为单个服务。
 
-- 点击 `Add Service` → `Git` → 选择本仓库 → 选择子目录 **`backend`**
-- 再次 `Add Service` → `Git` → 选择本仓库 → 选择子目录 **`frontend`**
+### 3. 配置服务
 
-如果 Zeabur 没有自动提示选择子目录，在各服务的 `Settings` 中手动指定 `Root Directory`。
-
-### 3. 配置 backend 服务
-
-- **端口**: 确认为 `8080`（不需要绑定域名，仅内部通信）
 - **Storage**: 挂载持久化卷，路径 `/app/data`（保存站点数据）
+- **Networking**: 绑定域名（使用 Zeabur 提供的 `.zeabur.app` 域名或自定义域名），端口 `8080`
 - **Variables**:
-  - `PORT` = `8080`
-  - `CORS_ORIGIN` = `*`
   - `ACCESS_PASSWORD` = `你的访问密码`（可选，设置后需输入密码才能访问）
 
-### 4. 配置 frontend 服务
+### 4. 访问
 
-- **Variables**:
-  - `BACKEND_URL` = `http://backend.zeabur.internal:8080`
-- **Networking**: 绑定域名（使用 Zeabur 提供的 `.zeabur.app` 域名或自定义域名）
-- **端口**: 确认为 `80`
-
-### 5. 访问
-
-通过 frontend 绑定的域名访问，所有 `/api/` 请求会自动代理到 backend 服务。
+通过绑定的域名直接访问，前端和后端 API 由同一服务提供。
 
 ## 访问控制
 

@@ -1,31 +1,15 @@
 {
-  "template": "MONOREPO",
-  "services": [
+  "template": "DOCKERFILE",
+  "ports": [8080],
+  "volumes": [
     {
-      "name": "backend",
-      "path": "backend",
-      "template": "DOCKERFILE",
-      "ports": [8080],
-      "volumes": [
-        {
-          "id": "site-data",
-          "dir": "/app/data"
-        }
-      ],
-      "env": {
-        "PORT": "8080",
-        "CORS_ORIGIN": "*",
-        "ACCESS_PASSWORD": "${ACCESS_PASSWORD}"
-      }
-    },
-    {
-      "name": "frontend",
-      "path": "frontend",
-      "template": "DOCKERFILE",
-      "ports": [80],
-      "env": {
-        "BACKEND_URL": "http://backend.zeabur.internal:8080"
-      }
+      "id": "site-data",
+      "dir": "/app/data"
     }
-  ]
+  ],
+  "env": {
+    "PORT": "8080",
+    "CORS_ORIGIN": "*",
+    "ACCESS_PASSWORD": "${ACCESS_PASSWORD}"
+  }
 }

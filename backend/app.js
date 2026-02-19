@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const { createStore } = require("./store");
 
 const PORT = process.env.PORT || 8080;
@@ -111,6 +112,16 @@ app.get("/api/v1/export", (req, res) => {
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Type", "application/json");
   res.json(data);
+});
+
+// Serve frontend static files
+const publicDir = path.join(__dirname, "public");
+app.use(express.static(publicDir));
+
+// SPA fallback - serve index.html for non-API routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next();
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 // Error handler
