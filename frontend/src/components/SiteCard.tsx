@@ -1,5 +1,5 @@
 import type { Site, Maintainer } from '@/types'
-import { CalendarCheck, ExternalLink, Gift, Pencil, Trash2, User } from 'lucide-react'
+import { CalendarCheck, ExternalLink, Gift, Pencil, Trash2, User, Tag, StickyNote } from 'lucide-react'
 
 interface SiteCardProps {
   site: Site
@@ -90,6 +90,29 @@ export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
             <span className="truncate">{site.url}</span>
           </a>
         </div>
+
+        {/* Custom Tags */}
+        {site.tags && site.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {site.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+              >
+                <Tag className="w-2.5 h-2.5" />
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Notes */}
+        {site.notes && (
+          <div className="flex items-start gap-1.5 mt-3 text-xs text-slate-400">
+            <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span className="line-clamp-2">{site.notes}</span>
+          </div>
+        )}
 
         {/* Maintainers */}
         {site.maintainers.length > 0 && (

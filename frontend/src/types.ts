@@ -12,6 +12,8 @@ export interface Site {
   is_benefit: boolean;
   checkin_url: string;
   benefit_url: string;
+  tags: string[];
+  notes: string;
   maintainers: Maintainer[];
   created_at: string;
   updated_at: string;

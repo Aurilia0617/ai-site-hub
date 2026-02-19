@@ -47,6 +47,12 @@ function parseBool(v) {
   return undefined;
 }
 
+// GET /api/v1/tags
+app.get("/api/v1/tags", (req, res) => {
+  const tags = store.listTags();
+  res.json({ tags });
+});
+
 // GET /api/v1/sites
 app.get("/api/v1/sites", (req, res) => {
   const filters = {

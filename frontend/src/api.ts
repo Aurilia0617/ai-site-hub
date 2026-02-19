@@ -57,6 +57,13 @@ export interface SiteFilters {
   is_benefit?: boolean
 }
 
+export function useTags() {
+  return useQuery({
+    queryKey: ['tags'],
+    queryFn: () => fetchJSON<{ tags: string[] }>(`${API_BASE}/tags`),
+  })
+}
+
 export function useSites(filters: SiteFilters) {
   return useQuery({
     queryKey: ['sites', filters],

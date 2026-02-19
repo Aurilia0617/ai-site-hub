@@ -117,14 +117,9 @@ function createStore(opts) {
           is_benefit: Boolean(input.is_benefit),
           checkin_url: (input.checkin_url || "").trim(),
           benefit_url: (input.benefit_url || "").trim(),
+          tags: Array.isArray(input.tags) ? input.tags.map((t) => String(t).trim()).filter(Boolean) : [],
+          notes: (input.notes || "").trim(),
           maintainers: normalizeMaintainers(input.maintainers),
-          created_at: nowISO(),
-          updated_at: nowISO(),
-        };
-        d.sites.push(site);
-        return deepClone(site);
-      });
-    },
 
     updateSite(id, patch) {
       return enqueueWrite((d) => {
@@ -150,6 +145,8 @@ function createStore(opts) {
         if (patch.is_benefit !== undefined) site.is_benefit = Boolean(patch.is_benefit);
         if (patch.checkin_url !== undefined) site.checkin_url = (patch.checkin_url || "").trim();
         if (patch.benefit_url !== undefined) site.benefit_url = (patch.benefit_url || "").trim();
+        if (patch.tags !== undefined) site.tags = Array.isArray(patch.tags) ? patch.tags.map((t) => String(t).trim()).filter(Boolean) : [];
+        if (patch.notes !== undefined) site.notes = (patch.notes || "").trim();
         if (patch.maintainers !== undefined) {
           site.maintainers = normalizeMaintainers(patch.maintainers);
         }
@@ -188,6 +185,8 @@ function createStore(opts) {
             is_benefit: Boolean(s.is_benefit),
             checkin_url: (s.checkin_url || "").trim(),
             benefit_url: (s.benefit_url || "").trim(),
+            tags: Array.isArray(s.tags) ? s.tags.map((t) => String(t).trim()).filter(Boolean) : [],
+            notes: (s.notes || "").trim(),
             maintainers: normalizeMaintainers(s.maintainers),
             created_at: s.created_at || nowISO(),
             updated_at: nowISO(),
@@ -208,6 +207,8 @@ function createStore(opts) {
             existing.is_benefit = Boolean(s.is_benefit);
             existing.checkin_url = (s.checkin_url || "").trim();
             existing.benefit_url = (s.benefit_url || "").trim();
+            existing.tags = Array.isArray(s.tags) ? s.tags.map((t) => String(t).trim()).filter(Boolean) : [];
+            existing.notes = (s.notes || "").trim();
             existing.maintainers = normalizeMaintainers(s.maintainers);
             existing.updated_at = nowISO();
             updated++;
@@ -220,6 +221,8 @@ function createStore(opts) {
               is_benefit: Boolean(s.is_benefit),
               checkin_url: (s.checkin_url || "").trim(),
               benefit_url: (s.benefit_url || "").trim(),
+              tags: Array.isArray(s.tags) ? s.tags.map((t) => String(t).trim()).filter(Boolean) : [],
+              notes: (s.notes || "").trim(),
               maintainers: normalizeMaintainers(s.maintainers),
               created_at: s.created_at || nowISO(),
               updated_at: nowISO(),
@@ -233,6 +236,16 @@ function createStore(opts) {
 
     exportData() {
       return deepClone(data);
+    },
+
+    listTags() {
+      const tagSet = new Set();
+      for (const site of data.sites) {
+        if (Array.isArray(site.tags)) {
+          for (const t of site.tags) tagSet.add(t);
+        }
+      }
+      return [...tagSet].sort();
     },
   };
 }

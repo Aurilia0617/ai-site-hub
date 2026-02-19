@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Site, Maintainer } from '@/types'
 import { Plus, X } from 'lucide-react'
+import { useTags } from '../api'
 
 interface SiteFormDialogProps {
   open: boolean
@@ -21,7 +22,16 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
   const [isBenefit, setIsBenefit] = useState(false)
   const [checkinUrl, setCheckinUrl] = useState('')
   const [benefitUrl, setBenefitUrl] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
+  const [notes, setNotes] = useState('')
   const [maintainers, setMaintainers] = useState<Maintainer[]>([emptyMaintainer()])
+
+  const { data: tagsData } = useTags()
+  const allTags = tagsData?.tags ?? []
+  const tagSuggestions = allTags.filter(
+    (t) => !tags.includes(t) && t.toLowerCase().includes(tagInput.toLowerCase())
+  )
 
   useEffect(() => {
     if (open) {
@@ -32,6 +42,9 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
         setIsBenefit(site.is_benefit)
         setCheckinUrl(site.checkin_url || '')
         setBenefitUrl(site.benefit_url || '')
+        setTags(site.tags || [])
+        setTagInput('')
+        setNotes(site.notes || '')
         setMaintainers(site.maintainers.length > 0 ? site.maintainers : [emptyMaintainer()])
       } else {
         setName('')
@@ -40,6 +53,9 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
         setIsBenefit(false)
         setCheckinUrl('')
         setBenefitUrl('')
+        setTags([])
+        setTagInput('')
+        setNotes('')
         setMaintainers([emptyMaintainer()])
       }
     }
@@ -60,6 +76,8 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
       is_benefit: isBenefit,
       checkin_url: checkinUrl.trim(),
       benefit_url: benefitUrl.trim(),
+      tags,
+      notes: notes.trim(),
       maintainers: validMaintainers.map((m) => ({
         id: m.id || '',
         name: m.name.trim(),
@@ -176,6 +194,76 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
               <p className="text-xs text-slate-400 ml-1">填写后福利站标签可点击跳转</p>
             </div>
           )}
+
+          {/* Tags */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">标签</label>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 rounded-lg bg-primary-50 border border-primary/20 px-2.5 py-1 text-xs font-medium text-primary-700"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
+                      className="hover:text-destructive transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="relative">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tagInput.trim()) {
+                    e.preventDefault()
+                    const val = tagInput.trim()
+                    if (!tags.includes(val)) setTags((prev) => [...prev, val])
+                    setTagInput('')
+                  }
+                }}
+                placeholder="输入标签后回车添加"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400"
+              />
+              {tagInput && tagSuggestions.length > 0 && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                  {tagSuggestions.slice(0, 5).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        if (!tags.includes(t)) setTags((prev) => [...prev, t])
+                        setTagInput('')
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-600 hover:bg-primary-50 hover:text-primary transition-colors"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">备注</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="添加备注信息（可选）"
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400 resize-none"
+            />
+          </div>
 
           <div>
             <div className="flex items-center justify-between mb-3">
