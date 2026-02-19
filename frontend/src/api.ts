@@ -127,7 +127,12 @@ export function useImportSites() {
 }
 
 export async function exportSites() {
-  const res = await fetch(`${API_BASE}/export`)
+  const token = getAuthToken()
+  const headers: HeadersInit = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  const res = await fetch(`${API_BASE}/export`, { headers })
   if (!res.ok) throw new Error('Export failed')
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
