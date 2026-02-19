@@ -120,6 +120,13 @@ function createStore(opts) {
           tags: Array.isArray(input.tags) ? input.tags.map((t) => String(t).trim()).filter(Boolean) : [],
           notes: (input.notes || "").trim(),
           maintainers: normalizeMaintainers(input.maintainers),
+          created_at: nowISO(),
+          updated_at: nowISO(),
+        };
+        d.sites.push(site);
+        return deepClone(site);
+      });
+    },
 
     updateSite(id, patch) {
       return enqueueWrite((d) => {
