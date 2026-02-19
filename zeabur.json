@@ -1,0 +1,27 @@
+{
+  "template": "MONOREPO",
+  "services": [
+    {
+      "name": "backend",
+      "path": "backend",
+      "template": "DOCKERFILE",
+      "ports": [8080],
+      "volumes": [
+        {
+          "id": "site-data",
+          "dir": "/app/data"
+        }
+      ],
+      "env": {
+        "PORT": "8080",
+        "CORS_ORIGIN": "*"
+      }
+    },
+    {
+      "name": "frontend",
+      "path": "frontend",
+      "template": "DOCKERFILE",
+      "ports": [80]
+    }
+  ]
+}

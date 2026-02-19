@@ -1,0 +1,94 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { Site, SitesResponse, ImportResult } from './types'
+
+const API_BASE = '/api/v1'
+
+async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, init)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body?.error?.message || body?.error || `Request failed: ${res.status}`)
+  }
+  if (res.status === 204) return undefined as T
+  return res.json()
+}
+
+export interface SiteFilters {
+  q?: string
+  is_checkin?: boolean
+  is_benefit?: boolean
+}
+
+export function useSites(filters: SiteFilters) {
+  return useQuery({
+    queryKey: ['sites', filters],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (filters.q) params.set('q', filters.q)
+      if (filters.is_checkin !== undefined) params.set('is_checkin', String(filters.is_checkin))
+      if (filters.is_benefit !== undefined) params.set('is_benefit', String(filters.is_benefit))
+      const qs = params.toString()
+      return fetchJSON<SitesResponse>(`${API_BASE}/sites${qs ? `?${qs}` : ''}`)
+    },
+  })
+}
+
+export function useCreateSite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<Site>) =>
+      fetchJSON<{ site: Site }>(`${API_BASE}/sites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  })
+}
+
+export function useUpdateSite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<Site> & { id: string }) =>
+      fetchJSON<{ site: Site }>(`${API_BASE}/sites/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  })
+}
+
+export function useDeleteSite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetchJSON<void>(`${API_BASE}/sites/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  })
+}
+
+export function useImportSites() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ data, mode }: { data: unknown; mode: string }) =>
+      fetchJSON<ImportResult>(`${API_BASE}/import?mode=${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  })
+}
+
+export async function exportSites() {
+  const res = await fetch(`${API_BASE}/export`)
+  if (!res.ok) throw new Error('Export failed')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `site-hub-export-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
