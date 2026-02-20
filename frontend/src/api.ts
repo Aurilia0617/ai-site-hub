@@ -147,6 +147,11 @@ export interface BalanceData {
   success: boolean
   data: {
     quota: number
+    checkin: {
+      count: number
+      total_quota: number
+      checked_in_today: boolean
+    } | null
   }
 }
 
@@ -157,5 +162,22 @@ export function useSiteBalance(siteId: string, enabled: boolean) {
     enabled,
     staleTime: 60_000,
     refetchInterval: 300_000,
+  })
+}
+
+export async function checkinSite(siteId: string): Promise<{ success: boolean; message: string }> {
+  return fetchJSON(`${API_BASE}/sites/${siteId}/checkin`, { method: 'POST' })
+}
+
+export function useSiteCheckin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (siteId: string) =>
+      fetchJSON<{ success: boolean; message: string }>(`${API_BASE}/sites/${siteId}/checkin`, {
+        method: 'POST',
+      }),
+    onSuccess: (_data, siteId) => {
+      qc.invalidateQueries({ queryKey: ['balance', siteId] })
+    },
   })
 }

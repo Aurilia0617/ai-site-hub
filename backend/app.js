@@ -101,9 +101,68 @@ app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
       return res.status(400).json({ error: { code: "BAD_REQUEST", message: "该站点未配置系统访问令牌或用户 ID" } });
     }
     const baseUrl = site.url.replace(/\/$/, "");
-    const upstreamUrl = `${baseUrl}/api/user/self`;
-    console.log(`[balance] querying wallet for ${site.name}: ${upstreamUrl}`);
-    const resp = await fetch(upstreamUrl, {
+    const authHeaders = {
+      Authorization: `Bearer ${site.api_key}`,
+      "New-Api-User": site.api_user_id,
+    };
+    const fetchOpts = { headers: authHeaders, redirect: "follow", signal: AbortSignal.timeout(10000) };
+    console.log(`[balance] querying wallet+checkin for ${site.name}`);
+    const [walletResp, checkinResp] = await Promise.all([
+      fetch(`${baseUrl}/api/user/self`, fetchOpts),
+      fetch(`${baseUrl}/api/user/checkin`, fetchOpts).catch((err) => {
+        console.log(`[balance] checkin fetch failed for ${site.name}: ${err.message}`);
+        return null;
+      }),
+    ]);
+    if (!walletResp.ok) {
+      const errText = await walletResp.text().catch(() => "");
+      console.log(`[balance] upstream error for ${site.name}: ${walletResp.status} ${errText.slice(0, 200)}`);
+      return res.status(502).json({ error: { code: "UPSTREAM_ERROR", message: `上游返回 ${walletResp.status}` } });
+    }
+    const walletBody = await walletResp.json();
+    const quota = walletBody?.data?.quota ?? 0;
+    let checkin = null;
+    if (checkinResp && checkinResp.ok) {
+      try {
+        const checkinBody = await checkinResp.json();
+        const stats = checkinBody?.data?.stats;
+        if (stats) {
+          checkin = {
+            count: stats.total_checkins || 0,
+            total_quota: stats.total_quota || 0,
+            checked_in_today: !!stats.checked_in_today,
+          };
+        }
+      } catch (parseErr) {
+        console.log(`[balance] checkin parse error for ${site.name}: ${parseErr.message}`);
+      }
+    }
+    console.log(`[balance] ${site.name}: quota=${quota}, checkin=${JSON.stringify(checkin)}`);
+    res.json({ success: true, data: { quota, checkin } });
+  } catch (err) {
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      console.log(`[balance] timeout for site ${req.params.id}`);
+      return res.status(504).json({ error: { code: "TIMEOUT", message: "查询上游超时" } });
+    }
+    console.error(`[balance] error for site ${req.params.id}:`, err.message);
+    next(err);
+  }
+});
+
+// POST /api/v1/sites/:id/checkin - proxy checkin for new-api sites
+app.post("/api/v1/sites/:id/checkin", async (req, res, next) => {
+  try {
+    const site = store.getSiteRaw(req.params.id);
+    if (!site) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Site not found" } });
+    }
+    if (site.site_type !== "new-api" || !site.api_key || !site.api_user_id) {
+      return res.status(400).json({ error: { code: "BAD_REQUEST", message: "该站点未配置系统访问令牌或用户 ID" } });
+    }
+    const baseUrl = site.url.replace(/\/$/, "");
+    console.log(`[checkin] signing in for ${site.name}`);
+    const resp = await fetch(`${baseUrl}/api/user/checkin`, {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${site.api_key}`,
         "New-Api-User": site.api_user_id,
@@ -113,19 +172,16 @@ app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
     });
     if (!resp.ok) {
       const errText = await resp.text().catch(() => "");
-      console.log(`[balance] upstream error for ${site.name}: ${resp.status} ${errText.slice(0, 200)}`);
+      console.log(`[checkin] upstream error for ${site.name}: ${resp.status} ${errText.slice(0, 200)}`);
       return res.status(502).json({ error: { code: "UPSTREAM_ERROR", message: `上游返回 ${resp.status}` } });
     }
-    const body = await resp.json();
-    const quota = body?.data?.quota;
-    console.log(`[balance] ${site.name}: wallet quota=${quota}`);
-    res.json({ success: true, data: { quota: quota ?? 0 } });
+    const body = await resp.json().catch(() => ({ success: false, message: "响应解析失败" }));
+    console.log(`[checkin] ${site.name}: success=${body.success}, message=${body.message}`);
+    res.json(body);
   } catch (err) {
     if (err.name === "TimeoutError" || err.name === "AbortError") {
-      console.log(`[balance] timeout for site ${req.params.id}`);
-      return res.status(504).json({ error: { code: "TIMEOUT", message: "查询上游超时" } });
+      return res.status(504).json({ error: { code: "TIMEOUT", message: "签到超时" } });
     }
-    console.error(`[balance] error for site ${req.params.id}:`, err.message);
     next(err);
   }
 });

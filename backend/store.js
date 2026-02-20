@@ -89,11 +89,16 @@ function createStore(opts) {
         if (!Array.isArray(data.sites)) {
           data.sites = [];
         }
-        // Migrate: ensure all sites have site_type
+        // Migrate: ensure all sites have current-schema fields
         for (const s of data.sites) {
           if (!s.site_type) s.site_type = "other";
           if (s.api_key === undefined) s.api_key = "";
           if (s.api_user_id === undefined) s.api_user_id = "";
+          if (s.checkin_url === undefined) s.checkin_url = "";
+          if (s.benefit_url === undefined) s.benefit_url = "";
+          if (!Array.isArray(s.tags)) s.tags = [];
+          if (s.notes === undefined) s.notes = "";
+          if (!Array.isArray(s.maintainers)) s.maintainers = [];
         }
       }
     },

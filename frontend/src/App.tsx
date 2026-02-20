@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useSites, useCreateSite, useUpdateSite, useDeleteSite, checkAuth } from './api'
+import { useSites, useCreateSite, useUpdateSite, useDeleteSite, checkAuth, checkinSite } from './api'
 import { SiteCard } from './components/SiteCard'
 import { SiteFormDialog } from './components/SiteFormDialog'
 import { ImportExportBar } from './components/ImportExportBar'
 import { PasswordGate } from './components/PasswordGate'
 import { toast } from 'sonner'
-import { Plus, Search, Compass } from 'lucide-react'
+import { Plus, Search, Compass, CalendarCheck } from 'lucide-react'
 import type { Site } from './types'
+import { useQueryClient } from '@tanstack/react-query'
 
 type FilterTag = 'checkin' | 'benefit'
 type AuthState = 'loading' | 'authenticated' | 'need-password'
@@ -56,6 +57,8 @@ function MainContent() {
   const [activeTags, setActiveTags] = useState<Set<FilterTag>>(new Set())
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingSite, setEditingSite] = useState<Site | null>(null)
+  const [checkinRunning, setCheckinRunning] = useState(false)
+  const queryClient = useQueryClient()
 
   const filters = useMemo(() => {
     const f: { q?: string; is_checkin?: boolean; is_benefit?: boolean } = {}
@@ -123,22 +126,72 @@ function MainContent() {
   const sites = data?.items ?? []
   const isMutating = createMutation.isPending || updateMutation.isPending
 
+  const newApiSites = sites.filter((s) => s.site_type === 'new-api')
+
+  async function handleBatchCheckin() {
+    if (newApiSites.length === 0) {
+      toast.info('没有 New API 站点可签到')
+      return
+    }
+    setCheckinRunning(true)
+    try {
+      const results = await Promise.allSettled(
+        newApiSites.map(async (site) => {
+          const res = await checkinSite(site.id)
+          return { site, res }
+        })
+      )
+      const succeeded: string[] = []
+      const failed: string[] = []
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value.res.success) {
+          succeeded.push(r.value.site.name)
+        } else {
+          const name = r.status === 'fulfilled' ? r.value.site.name : '未知'
+          const msg = r.status === 'fulfilled' ? r.value.res.message : '请求失败'
+          failed.push(`${name}（${msg}）`)
+        }
+      }
+      if (succeeded.length > 0) {
+        toast.success(`签到成功 ${succeeded.length} 个：${succeeded.join('、')}`)
+      }
+      if (failed.length > 0) {
+        toast.error(`签到失败 ${failed.length} 个：${failed.join('、')}`)
+      }
+      queryClient.invalidateQueries({ queryKey: ['balance'] })
+    } finally {
+      setCheckinRunning(false)
+    }
+  }
+
   return (
     <div className="min-h-screen pb-20 px-4 sm:px-6">
       {/* Floating Header */}
       <header className="sticky top-4 z-40 mx-auto max-w-5xl rounded-2xl bg-white/80 backdrop-blur-xl shadow-lg shadow-primary/5 border border-white/50 p-4 mb-8 mt-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-brand-start to-brand-end bg-clip-text text-transparent">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-brand-start to-brand-end bg-clip-text text-transparent shrink-0">
             SiteHub
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             <ImportExportBar />
+            {newApiSites.length > 0 && (
+              <button
+                onClick={handleBatchCheckin}
+                disabled={checkinRunning}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/40 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+              >
+                <CalendarCheck className="w-4 h-4" />
+                <span className="hidden xs:inline">{checkinRunning ? '签到中...' : '一键签到'}</span>
+                <span className="xs:hidden">{checkinRunning ? '...' : '签到'}</span>
+              </button>
+            )}
             <button
               onClick={openCreate}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-start to-brand-end px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-start to-brand-end px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
-              添加站点
+              <span className="hidden xs:inline">添加站点</span>
+              <span className="xs:hidden">添加</span>
             </button>
           </div>
         </div>
@@ -146,7 +199,7 @@ function MainContent() {
 
       {/* Toolbar */}
       <div className="max-w-5xl mx-auto mb-6">
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-white/40 backdrop-blur-sm rounded-xl p-3 border border-white/50">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -154,11 +207,11 @@ function MainContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索站点名称、网址、站长..."
-              className="w-full bg-white/60 border-0 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 shadow-sm transition-all placeholder:text-slate-400"
+              className="w-full bg-white/80 border-0 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 shadow-sm transition-all placeholder:text-slate-400"
             />
           </div>
           <div className="flex items-center gap-2">
-            <div className="p-1 bg-slate-100/80 rounded-xl flex gap-1">
+            <div className="p-1 bg-slate-100/80 rounded-lg flex gap-1">
               <button
                 onClick={() => toggleTag('checkin')}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
@@ -214,9 +267,9 @@ function MainContent() {
           </div>
         )}
         {!isLoading && !error && sites.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sites.map((site) => (
-              <SiteCard key={site.id} site={site} onEdit={openEdit} onDelete={handleDelete} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {sites.map((site, i) => (
+              <SiteCard key={site.id} site={site} index={i} onEdit={openEdit} onDelete={handleDelete} />
             ))}
           </div>
         )}
