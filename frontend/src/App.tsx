@@ -9,7 +9,7 @@ import { Plus, Search, Compass, CalendarCheck } from 'lucide-react'
 import type { Site } from './types'
 import { useQueryClient } from '@tanstack/react-query'
 
-type FilterTag = 'checkin' | 'benefit'
+type FilterTag = 'checkin' | 'benefit' | 'manual_checkin'
 type AuthState = 'loading' | 'authenticated' | 'need-password'
 
 export default function App() {
@@ -61,10 +61,11 @@ function MainContent() {
   const queryClient = useQueryClient()
 
   const filters = useMemo(() => {
-    const f: { q?: string; is_checkin?: boolean; is_benefit?: boolean } = {}
+    const f: { q?: string; is_checkin?: boolean; is_benefit?: boolean; manual_checkin?: boolean } = {}
     if (search.trim()) f.q = search.trim()
     if (activeTags.has('checkin')) f.is_checkin = true
     if (activeTags.has('benefit')) f.is_benefit = true
+    if (activeTags.has('manual_checkin')) f.manual_checkin = true
     return f
   }, [search, activeTags])
 
@@ -231,6 +232,16 @@ function MainContent() {
                 }`}
               >
                 福利站
+              </button>
+              <button
+                onClick={() => toggleTag('manual_checkin')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                  activeTags.has('manual_checkin')
+                    ? 'bg-white shadow-sm text-amber-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                手动签到
               </button>
             </div>
             {sites.length > 0 && (

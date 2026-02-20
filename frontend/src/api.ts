@@ -55,6 +55,7 @@ export interface SiteFilters {
   q?: string
   is_checkin?: boolean
   is_benefit?: boolean
+  manual_checkin?: boolean
 }
 
 export function useTags() {
@@ -72,6 +73,7 @@ export function useSites(filters: SiteFilters) {
       if (filters.q) params.set('q', filters.q)
       if (filters.is_checkin !== undefined) params.set('is_checkin', String(filters.is_checkin))
       if (filters.is_benefit !== undefined) params.set('is_benefit', String(filters.is_benefit))
+      if (filters.manual_checkin) params.set('manual_checkin', 'true')
       const qs = params.toString()
       return fetchJSON<SitesResponse>(`${API_BASE}/sites${qs ? `?${qs}` : ''}`)
     },

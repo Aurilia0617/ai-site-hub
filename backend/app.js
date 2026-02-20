@@ -60,6 +60,7 @@ app.get("/api/v1/sites", (req, res) => {
     q: req.query.q || undefined,
     is_checkin: parseBool(req.query.is_checkin),
     is_benefit: parseBool(req.query.is_benefit),
+    manual_checkin: parseBool(req.query.manual_checkin),
   };
   const items = store.listSites(filters);
   res.json({ items, total: items.length });

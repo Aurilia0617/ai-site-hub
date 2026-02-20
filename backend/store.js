@@ -120,6 +120,11 @@ function createStore(opts) {
       if (filters.is_benefit !== undefined) {
         sites = sites.filter((s) => s.is_benefit === filters.is_benefit);
       }
+      if (filters.manual_checkin) {
+        sites = sites.filter(
+          (s) => s.is_checkin && (s.site_type !== "new-api" || !s.api_key || !s.api_user_id)
+        );
+      }
       // Strip sensitive fields and normalize site_type for list responses
       for (const s of sites) {
         delete s.api_key;
