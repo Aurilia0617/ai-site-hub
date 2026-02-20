@@ -38,6 +38,7 @@ app.use("/api", (req, res, next) => {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (token === ACCESS_PASSWORD) return next();
+  console.log(`[auth] 401 denied: ${req.method} ${req.path}`);
   res.status(401).json({ error: { code: "UNAUTHORIZED", message: "需要认证" } });
 });
 
