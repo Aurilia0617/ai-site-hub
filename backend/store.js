@@ -89,6 +89,11 @@ function createStore(opts) {
         if (!Array.isArray(data.sites)) {
           data.sites = [];
         }
+        // Migrate: ensure all sites have site_type
+        for (const s of data.sites) {
+          if (!s.site_type) s.site_type = "other";
+          if (s.api_key === undefined) s.api_key = "";
+        }
       }
     },
 
@@ -109,9 +114,10 @@ function createStore(opts) {
       if (filters.is_benefit !== undefined) {
         sites = sites.filter((s) => s.is_benefit === filters.is_benefit);
       }
-      // Strip api_key from list responses
+      // Strip api_key and normalize site_type for list responses
       for (const s of sites) {
         delete s.api_key;
+        if (!s.site_type) s.site_type = "other";
       }
       return sites;
     },

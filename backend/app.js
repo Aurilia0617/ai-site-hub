@@ -92,25 +92,34 @@ app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
   try {
     const site = store.getSiteRaw(req.params.id);
     if (!site) {
+      console.log(`[balance] site not found: ${req.params.id}`);
       return res.status(404).json({ error: { code: "NOT_FOUND", message: "Site not found" } });
     }
     if (site.site_type !== "new-api" || !site.api_key) {
+      console.log(`[balance] site ${site.name} (${site.id}): site_type=${site.site_type}, api_key=${site.api_key ? "set" : "empty"}`);
       return res.status(400).json({ error: { code: "BAD_REQUEST", message: "该站点未配置 New API 密钥" } });
     }
     const baseUrl = site.url.replace(/\/$/, "");
-    const resp = await fetch(`${baseUrl}/api/usage/token`, {
+    const upstreamUrl = `${baseUrl}/api/usage/token`;
+    console.log(`[balance] querying ${site.name}: ${upstreamUrl}`);
+    const resp = await fetch(upstreamUrl, {
       headers: { Authorization: `Bearer ${site.api_key}` },
       signal: AbortSignal.timeout(10000),
     });
     if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      console.log(`[balance] upstream error for ${site.name}: ${resp.status} ${errText.slice(0, 200)}`);
       return res.status(502).json({ error: { code: "UPSTREAM_ERROR", message: `上游返回 ${resp.status}` } });
     }
     const body = await resp.json();
+    console.log(`[balance] ${site.name}: available=${body?.data?.total_available}, unlimited=${body?.data?.unlimited_quota}`);
     res.json(body);
   } catch (err) {
     if (err.name === "TimeoutError" || err.name === "AbortError") {
+      console.log(`[balance] timeout for site ${req.params.id}`);
       return res.status(504).json({ error: { code: "TIMEOUT", message: "查询上游超时" } });
     }
+    console.error(`[balance] error for site ${req.params.id}:`, err.message);
     next(err);
   }
 });
