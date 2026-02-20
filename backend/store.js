@@ -93,6 +93,7 @@ function createStore(opts) {
         for (const s of data.sites) {
           if (!s.site_type) s.site_type = "other";
           if (s.api_key === undefined) s.api_key = "";
+          if (s.api_user_id === undefined) s.api_user_id = "";
         }
       }
     },
@@ -114,9 +115,10 @@ function createStore(opts) {
       if (filters.is_benefit !== undefined) {
         sites = sites.filter((s) => s.is_benefit === filters.is_benefit);
       }
-      // Strip api_key and normalize site_type for list responses
+      // Strip sensitive fields and normalize site_type for list responses
       for (const s of sites) {
         delete s.api_key;
+        delete s.api_user_id;
         if (!s.site_type) s.site_type = "other";
       }
       return sites;
@@ -136,6 +138,7 @@ function createStore(opts) {
           url: input.url.trim(),
           site_type: normalizeSiteType(input.site_type),
           api_key: (input.api_key || "").trim(),
+          api_user_id: (input.api_user_id || "").trim(),
           is_checkin: Boolean(input.is_checkin),
           is_benefit: Boolean(input.is_benefit),
           checkin_url: (input.checkin_url || "").trim(),
@@ -175,6 +178,7 @@ function createStore(opts) {
         if (patch.is_benefit !== undefined) site.is_benefit = Boolean(patch.is_benefit);
         if (patch.site_type !== undefined) site.site_type = normalizeSiteType(patch.site_type);
         if (patch.api_key !== undefined) site.api_key = (patch.api_key || "").trim();
+        if (patch.api_user_id !== undefined) site.api_user_id = (patch.api_user_id || "").trim();
         if (patch.checkin_url !== undefined) site.checkin_url = (patch.checkin_url || "").trim();
         if (patch.benefit_url !== undefined) site.benefit_url = (patch.benefit_url || "").trim();
         if (patch.tags !== undefined) site.tags = Array.isArray(patch.tags) ? patch.tags.map((t) => String(t).trim()).filter(Boolean) : [];
@@ -215,6 +219,7 @@ function createStore(opts) {
             url: s.url.trim(),
             site_type: normalizeSiteType(s.site_type),
             api_key: (s.api_key || "").trim(),
+            api_user_id: (s.api_user_id || "").trim(),
             is_checkin: Boolean(s.is_checkin),
             is_benefit: Boolean(s.is_benefit),
             checkin_url: (s.checkin_url || "").trim(),
@@ -239,6 +244,7 @@ function createStore(opts) {
             existing.url = s.url.trim();
             existing.site_type = normalizeSiteType(s.site_type);
             existing.api_key = (s.api_key || "").trim();
+            existing.api_user_id = (s.api_user_id || "").trim();
             existing.is_checkin = Boolean(s.is_checkin);
             existing.is_benefit = Boolean(s.is_benefit);
             existing.checkin_url = (s.checkin_url || "").trim();
@@ -255,6 +261,7 @@ function createStore(opts) {
               url: s.url.trim(),
               site_type: normalizeSiteType(s.site_type),
               api_key: (s.api_key || "").trim(),
+              api_user_id: (s.api_user_id || "").trim(),
               is_checkin: Boolean(s.is_checkin),
               is_benefit: Boolean(s.is_benefit),
               checkin_url: (s.checkin_url || "").trim(),

@@ -20,6 +20,7 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
   const [url, setUrl] = useState('')
   const [siteType, setSiteType] = useState<SiteType>('other')
   const [apiKey, setApiKey] = useState('')
+  const [apiUserId, setApiUserId] = useState('')
   const [isCheckin, setIsCheckin] = useState(false)
   const [isBenefit, setIsBenefit] = useState(false)
   const [checkinUrl, setCheckinUrl] = useState('')
@@ -42,6 +43,7 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
         setUrl(site.url)
         setSiteType(site.site_type || 'other')
         setApiKey(site.api_key || '')
+        setApiUserId(site.api_user_id || '')
         setIsCheckin(site.is_checkin)
         setIsBenefit(site.is_benefit)
         setCheckinUrl(site.checkin_url || '')
@@ -55,6 +57,7 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
         setUrl('')
         setSiteType('other')
         setApiKey('')
+        setApiUserId('')
         setIsCheckin(false)
         setIsBenefit(false)
         setCheckinUrl('')
@@ -80,6 +83,7 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
       url: url.trim(),
       site_type: siteType,
       api_key: siteType === 'new-api' ? apiKey.trim() : '',
+      api_user_id: siteType === 'new-api' ? apiUserId.trim() : '',
       is_checkin: isCheckin,
       is_benefit: isBenefit,
       checkin_url: checkinUrl.trim(),
@@ -156,17 +160,29 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
           </div>
 
           {siteType === 'new-api' && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-700 ml-1">API Key</label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-xxx（用于查询余额）"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400 font-mono"
-              />
-              <p className="text-xs text-slate-400 ml-1">填入 New API 令牌后可在卡片上显示余额</p>
-            </div>
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">系统访问令牌</label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="安全设置页面的系统访问令牌"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400 font-mono"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">用户 ID</label>
+                <input
+                  type="text"
+                  value={apiUserId}
+                  onChange={(e) => setApiUserId(e.target.value)}
+                  placeholder="个人设置页面中的用户 ID（数字）"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400 font-mono"
+                />
+                <p className="text-xs text-slate-400 ml-1">填入系统访问令牌和用户 ID 后可在卡片上显示钱包余额</p>
+              </div>
+            </>
           )}
 
           <div className="flex gap-3">

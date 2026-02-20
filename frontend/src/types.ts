@@ -12,6 +12,7 @@ export interface Site {
   url: string;
   site_type: SiteType;
   api_key?: string;
+  api_user_id?: string;
   is_checkin: boolean;
   is_benefit: boolean;
   checkin_url: string;

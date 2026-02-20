@@ -14,8 +14,8 @@ export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
   const isNewApi = site.site_type === 'new-api'
   const { data: balanceData, isLoading: balanceLoading } = useSiteBalance(site.id, isNewApi)
 
-  const balanceUsd = balanceData?.data
-    ? (balanceData.data.total_available / 500000).toFixed(2)
+  const balanceText = balanceData?.data
+    ? `LDC ${(balanceData.data.quota / 500000).toFixed(2)}`
     : null
 
   function handleCopy(e: React.MouseEvent) {
@@ -123,8 +123,8 @@ export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
             <span className="text-xs font-medium text-slate-500">
               {balanceLoading
                 ? '查询中...'
-                : balanceUsd !== null
-                  ? `$${balanceUsd}`
+                : balanceText !== null
+                  ? balanceText
                   : '余额不可用'}
             </span>
           </div>

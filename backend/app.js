@@ -88,7 +88,7 @@ app.patch("/api/v1/sites/:id", async (req, res, next) => {
   }
 });
 
-// GET /api/v1/sites/:id/balance - proxy balance query for new-api sites
+// GET /api/v1/sites/:id/balance - proxy wallet balance query for new-api sites
 app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
   try {
     const site = store.getSiteRaw(req.params.id);
@@ -96,15 +96,19 @@ app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
       console.log(`[balance] site not found: ${req.params.id}`);
       return res.status(404).json({ error: { code: "NOT_FOUND", message: "Site not found" } });
     }
-    if (site.site_type !== "new-api" || !site.api_key) {
-      console.log(`[balance] site ${site.name} (${site.id}): site_type=${site.site_type}, api_key=${site.api_key ? "set" : "empty"}`);
-      return res.status(400).json({ error: { code: "BAD_REQUEST", message: "该站点未配置 New API 密钥" } });
+    if (site.site_type !== "new-api" || !site.api_key || !site.api_user_id) {
+      console.log(`[balance] site ${site.name} (${site.id}): site_type=${site.site_type}, api_key=${site.api_key ? "set" : "empty"}, api_user_id=${site.api_user_id || "empty"}`);
+      return res.status(400).json({ error: { code: "BAD_REQUEST", message: "该站点未配置系统访问令牌或用户 ID" } });
     }
     const baseUrl = site.url.replace(/\/$/, "");
-    const upstreamUrl = `${baseUrl}/api/usage/token`;
-    console.log(`[balance] querying ${site.name}: ${upstreamUrl}`);
+    const upstreamUrl = `${baseUrl}/api/user/self`;
+    console.log(`[balance] querying wallet for ${site.name}: ${upstreamUrl}`);
     const resp = await fetch(upstreamUrl, {
-      headers: { Authorization: `Bearer ${site.api_key}` },
+      headers: {
+        Authorization: `Bearer ${site.api_key}`,
+        "New-Api-User": site.api_user_id,
+      },
+      redirect: "follow",
       signal: AbortSignal.timeout(10000),
     });
     if (!resp.ok) {
@@ -113,8 +117,9 @@ app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
       return res.status(502).json({ error: { code: "UPSTREAM_ERROR", message: `上游返回 ${resp.status}` } });
     }
     const body = await resp.json();
-    console.log(`[balance] ${site.name}: available=${body?.data?.total_available}, unlimited=${body?.data?.unlimited_quota}`);
-    res.json(body);
+    const quota = body?.data?.quota;
+    console.log(`[balance] ${site.name}: wallet quota=${quota}`);
+    res.json({ success: true, data: { quota: quota ?? 0 } });
   } catch (err) {
     if (err.name === "TimeoutError" || err.name === "AbortError") {
       console.log(`[balance] timeout for site ${req.params.id}`);
@@ -152,10 +157,11 @@ app.post("/api/v1/import", async (req, res, next) => {
 // GET /api/v1/export
 app.get("/api/v1/export", (req, res) => {
   const data = store.exportData();
-  // Strip api_key from exported sites
+  // Strip sensitive fields from exported sites
   if (Array.isArray(data.sites)) {
     for (const s of data.sites) {
       delete s.api_key;
+      delete s.api_user_id;
     }
   }
   const filename = `site-hub-export-${new Date().toISOString().slice(0, 10)}.json`;

@@ -144,13 +144,9 @@ export async function exportSites() {
 }
 
 export interface BalanceData {
-  code: boolean
+  success: boolean
   data: {
-    name: string
-    total_granted: number
-    total_used: number
-    total_available: number
-    unlimited_quota: boolean
+    quota: number
   }
 }
 
