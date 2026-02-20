@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Site, Maintainer } from '@/types'
+import type { Site, SiteType, Maintainer } from '@/types'
 import { Plus, X } from 'lucide-react'
 import { useTags } from '../api'
 
@@ -18,6 +18,8 @@ function emptyMaintainer(): Maintainer {
 export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteFormDialogProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
+  const [siteType, setSiteType] = useState<SiteType>('other')
+  const [apiKey, setApiKey] = useState('')
   const [isCheckin, setIsCheckin] = useState(false)
   const [isBenefit, setIsBenefit] = useState(false)
   const [checkinUrl, setCheckinUrl] = useState('')
@@ -38,6 +40,8 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
       if (site) {
         setName(site.name)
         setUrl(site.url)
+        setSiteType(site.site_type || 'other')
+        setApiKey(site.api_key || '')
         setIsCheckin(site.is_checkin)
         setIsBenefit(site.is_benefit)
         setCheckinUrl(site.checkin_url || '')
@@ -49,6 +53,8 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
       } else {
         setName('')
         setUrl('')
+        setSiteType('other')
+        setApiKey('')
         setIsCheckin(false)
         setIsBenefit(false)
         setCheckinUrl('')
@@ -72,6 +78,8 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
       ...(isEdit ? { id: site!.id } : {}),
       name: name.trim(),
       url: url.trim(),
+      site_type: siteType,
+      api_key: siteType === 'new-api' ? apiKey.trim() : '',
       is_checkin: isCheckin,
       is_benefit: isBenefit,
       checkin_url: checkinUrl.trim(),
@@ -133,6 +141,33 @@ export function SiteFormDialog({ open, site, onClose, onSubmit, loading }: SiteF
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400"
             />
           </div>
+
+          {/* Site Type */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">站点类型</label>
+            <select
+              value={siteType}
+              onChange={(e) => setSiteType(e.target.value as SiteType)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+            >
+              <option value="other">其他</option>
+              <option value="new-api">New API</option>
+            </select>
+          </div>
+
+          {siteType === 'new-api' && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-700 ml-1">API Key</label>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-xxx（用于查询余额）"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-400 font-mono"
+              />
+              <p className="text-xs text-slate-400 ml-1">填入 New API 令牌后可在卡片上显示余额</p>
+            </div>
+          )}
 
           <div className="flex gap-3">
             <label

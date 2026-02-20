@@ -4,10 +4,14 @@ export interface Maintainer {
   contact_url: string;
 }
 
+export type SiteType = 'new-api' | 'other';
+
 export interface Site {
   id: string;
   name: string;
   url: string;
+  site_type: SiteType;
+  api_key?: string;
   is_checkin: boolean;
   is_benefit: boolean;
   checkin_url: string;

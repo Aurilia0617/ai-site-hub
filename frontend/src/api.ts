@@ -142,3 +142,24 @@ export async function exportSites() {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+export interface BalanceData {
+  code: boolean
+  data: {
+    name: string
+    total_granted: number
+    total_used: number
+    total_available: number
+    unlimited_quota: boolean
+  }
+}
+
+export function useSiteBalance(siteId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['balance', siteId],
+    queryFn: () => fetchJSON<BalanceData>(`${API_BASE}/sites/${siteId}/balance`),
+    enabled,
+    staleTime: 60_000,
+    refetchInterval: 300_000,
+  })
+}

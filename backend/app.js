@@ -87,6 +87,34 @@ app.patch("/api/v1/sites/:id", async (req, res, next) => {
   }
 });
 
+// GET /api/v1/sites/:id/balance - proxy balance query for new-api sites
+app.get("/api/v1/sites/:id/balance", async (req, res, next) => {
+  try {
+    const site = store.getSiteRaw(req.params.id);
+    if (!site) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Site not found" } });
+    }
+    if (site.site_type !== "new-api" || !site.api_key) {
+      return res.status(400).json({ error: { code: "BAD_REQUEST", message: "该站点未配置 New API 密钥" } });
+    }
+    const baseUrl = site.url.replace(/\/$/, "");
+    const resp = await fetch(`${baseUrl}/api/usage/token`, {
+      headers: { Authorization: `Bearer ${site.api_key}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!resp.ok) {
+      return res.status(502).json({ error: { code: "UPSTREAM_ERROR", message: `上游返回 ${resp.status}` } });
+    }
+    const body = await resp.json();
+    res.json(body);
+  } catch (err) {
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      return res.status(504).json({ error: { code: "TIMEOUT", message: "查询上游超时" } });
+    }
+    next(err);
+  }
+});
+
 // DELETE /api/v1/sites/:id
 app.delete("/api/v1/sites/:id", async (req, res, next) => {
   try {
@@ -114,6 +142,12 @@ app.post("/api/v1/import", async (req, res, next) => {
 // GET /api/v1/export
 app.get("/api/v1/export", (req, res) => {
   const data = store.exportData();
+  // Strip api_key from exported sites
+  if (Array.isArray(data.sites)) {
+    for (const s of data.sites) {
+      delete s.api_key;
+    }
+  }
   const filename = `site-hub-export-${new Date().toISOString().slice(0, 10)}.json`;
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Type", "application/json");

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Site, Maintainer } from '@/types'
-import { CalendarCheck, ExternalLink, Gift, Pencil, Trash2, User, Tag, StickyNote, Copy, Check } from 'lucide-react'
+import { CalendarCheck, ExternalLink, Gift, Pencil, Trash2, User, Tag, StickyNote, Copy, Check, Wallet } from 'lucide-react'
+import { useSiteBalance } from '../api'
 
 interface SiteCardProps {
   site: Site
@@ -10,6 +11,12 @@ interface SiteCardProps {
 
 export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
   const [copied, setCopied] = useState(false)
+  const isNewApi = site.site_type === 'new-api'
+  const { data: balanceData, isLoading: balanceLoading } = useSiteBalance(site.id, isNewApi)
+
+  const balanceUsd = balanceData?.data
+    ? (balanceData.data.total_available / 500000).toFixed(2)
+    : null
 
   function handleCopy(e: React.MouseEvent) {
     e.stopPropagation()
@@ -108,6 +115,20 @@ export function SiteCard({ site, onEdit, onDelete }: SiteCardProps) {
             {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
         </div>
+
+        {/* Balance for New API sites */}
+        {isNewApi && (
+          <div className="flex items-center gap-1.5 mt-3">
+            <Wallet className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <span className="text-xs font-medium text-slate-500">
+              {balanceLoading
+                ? '查询中...'
+                : balanceUsd !== null
+                  ? `$${balanceUsd}`
+                  : '余额不可用'}
+            </span>
+          </div>
+        )}
 
         {/* Custom Tags */}
         {site.tags && site.tags.length > 0 && (
