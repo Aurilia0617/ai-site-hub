@@ -213,13 +213,6 @@ app.post("/api/v1/import", async (req, res, next) => {
 // GET /api/v1/export
 app.get("/api/v1/export", (req, res) => {
   const data = store.exportData();
-  // Strip sensitive fields from exported sites
-  if (Array.isArray(data.sites)) {
-    for (const s of data.sites) {
-      delete s.api_key;
-      delete s.api_user_id;
-    }
-  }
   const filename = `site-hub-export-${new Date().toISOString().slice(0, 10)}.json`;
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Type", "application/json");
